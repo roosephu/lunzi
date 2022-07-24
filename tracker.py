@@ -144,29 +144,4 @@ class TrackerRun:
         df.plot(y=y, label=label, **kwargs)
 
 
-if __name__ == '__main__':
-    tracker = Tracker('/tmp/a.pkl')
-    for i in range(3):
-        for j in range(5):
-            tracker.log({
-                'step': {
-                    'id': j,
-                    'loss': np.random.rand(),
-                }
-            }, commit=False)
-            tracker.log({
-                'step.acc': np.random.rand(),
-                'type': 'a',
-            })
-        tracker.log({
-            'epoch': {
-                'id': i,
-                'loss': np.random.rand(),
-            },
-            'type': 'b',
-        })
-
-    tracker.close()
-
-    run = TrackerRun('/tmp/a.pkl')
-    print(run['step.id', 'step.acc', 'type'])
+__all__ = ['Tracker', 'TrackerRun']
