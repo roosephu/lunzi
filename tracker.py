@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Union
 from datetime import datetime
-from io import BytesIO
 import pickle
 
 import pandas as pd
@@ -13,20 +12,16 @@ from box import Box
 
 class Tracker:
     HEARTBEAT_RATE = 300   # in seconds
-    MAX_CACHE_SIZE = 4096  # in bytes
+    MAX_CACHE_SIZE = 8192  # in bytes
 
-    def __init__(self, io: Union[BytesIO, str]):
-        if isinstance(io, str):
-            io = open(io, "wb")
-        self.io = io
+    def __init__(self, filename: str):
+        self.io = open(filename, "wb", buffering=self.MAX_CACHE_SIZE)
 
         self._step = 0  # next available step
-        self._cache = []
-        self._cache_size = 0
         self._cache_time = datetime.now()
 
     def _should_flush(self) -> bool:
-        return self._cache_size > self.MAX_CACHE_SIZE or (datetime.now() - self._cache_time).total_seconds() >= self.HEARTBEAT_RATE - 1
+        return (datetime.now() - self._cache_time).total_seconds() >= self.HEARTBEAT_RATE - 1
 
     async def heartbeat(self):
         import asyncio
@@ -41,20 +36,13 @@ class Tracker:
             self._step += 1
 
         data = pickle.dumps(kwargs)
-        self._cache.append(data)
-        self._cache_size += len(data)
+        self.io.write(data)
 
         if self._should_flush():
             self.flush()
 
     def flush(self):
-        if self._cache:
-            for data in self._cache:
-                self.io.write(data)
-            self.io.flush()
-
-        self._cache = []
-        self._cache_size = 0
+        self.io.flush()
         self._cache_time = datetime.now()
 
     def clean(self, value):
